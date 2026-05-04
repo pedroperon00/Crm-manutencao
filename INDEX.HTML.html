@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CRM Manutenção</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f5f5f2;
+  --bg2: #ffffff;
+  --bg3: #f0f0ec;
+  --bg4: #e8e8e4;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.13);
+  --text: #1a1a1a;
+  --text2: #555560;
+  --text3: #999999;
+  --accent: #4338ca;
+  --accent2: #3730a3;
+  --red: #dc2626;
+  --red-bg: rgba(220,38,38,0.08);
+  --amber: #d97706;
+  --amber-bg: rgba(217,119,6,0.09);
+  --green: #16a34a;
+  --green-bg: rgba(22,163,74,0.09);
+  --blue: #2563eb;
+  --blue-bg: rgba(37,99,235,0.09);
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; overflow: hidden; display: flex; }
+.sidebar { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--border); }
+.logo-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+nav { padding: 10px 8px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; margin-bottom: 1px; user-select: none; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(67,56,202,0.08); color: var(--accent); }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge { margin-left: auto; font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 6px; border-radius: 20px; font-weight: 500; }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); }
+.sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+.sidebar-footer span { color: var(--accent2); }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; gap: 12px; }
+.topbar-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.topbar-title { font-size: 16px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.search { background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 12px; border-radius: 8px; width: 200px; outline: none; transition: border .15s; }
+.search:focus { border-color: var(--accent); }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg4); color: var(--text); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(240,90,90,0.2); }
+.btn-danger:hover { background: rgba(240,90,90,0.2); }
+.content { flex: 1; overflow-y: auto; padding: 22px 24px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.metric-value { font-size: 28px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.metric-value.red { color: var(--red); }
+.metric-value.amber { color: var(--amber); }
+.metric-value.green { color: var(--green); }
+.metric-value.blue { color: var(--blue); }
+.section-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; }
+.table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { padding: 11px 14px; text-align: left; font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); background: var(--bg3); }
+tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg3); }
+.pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; font-family: 'DM Mono', monospace; }
+.pill-red { background: var(--red-bg); color: var(--red); }
+.pill-amber { background: var(--amber-bg); color: var(--amber); }
+.pill-green { background: var(--green-bg); color: var(--green); }
+.pill-blue { background: var(--blue-bg); color: var(--blue); }
+.alert-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.alert-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: var(--radius); border: 1px solid; }
+.alert-card.red { background: var(--red-bg); border-color: rgba(240,90,90,0.25); }
+.alert-card.amber { background: var(--amber-bg); border-color: rgba(240,169,90,0.25); }
+.alert-card.green { background: var(--green-bg); border-color: rgba(78,203,141,0.25); }
+.alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.alert-dot.red { background: var(--red); }
+.alert-dot.amber { background: var(--amber); }
+.alert-dot.green { background: var(--green); }
+.alert-body { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.alert-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.alert-date { font-size: 11px; font-family: 'DM Mono', monospace; flex-shrink: 0; padding-top: 2px; }
+.alert-date.red { color: var(--red); }
+.alert-date.amber { color: var(--amber); }
+.alert-date.green { color: var(--green); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 100; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 24px; width: 480px; max-height: 85vh; overflow-y: auto; }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--text); }
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+input[type=text], input[type=email], input[type=date], select, textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 8px 11px; border-radius: 8px; outline: none; transition: border .15s; }
+input[type=text]:focus, input[type=email]:focus, input[type=date]:focus, select:focus, textarea:focus { border-color: var(--accent); }
+select option { background: #ffffff; color: #1a1a1a; }
+textarea { resize: vertical; min-height: 70px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
+.empty-icon { font-size: 32px; margin-bottom: 10px; }
+.action-row { display: flex; gap: 6px; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d0cc; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">⚙ ManutençãoCRM</div>
+    <div class="logo-sub" id="client-count-label">0 clientes</div>
+  </div>
+  <nav>
+    <div class="nav-item active" data-panel="dashboard"><span class="nav-icon">◈</span>Dashboard</div>
+    <div class="nav-item" data-panel="clientes"><span class="nav-icon">◎</span>Clientes</div>
+    <div class="nav-item" data-panel="pendencias"><span class="nav-icon">◷</span>Pendências <span class="nav-badge badge-amber" id="badge-pend">0</span></div>
+    <div class="nav-item" data-panel="alertas"><span class="nav-icon">◉</span>Alertas <span class="nav-badge badge-red" id="badge-alert">0</span></div>
+    <div class="nav-item" data-panel="historico"><span class="nav-icon">◫</span>Histórico</div>
+    <div class="nav-item" data-panel="pecas"><span class="nav-icon">⬡</span>Peças</div>
+    <div class="nav-item" data-panel="materiais"><span class="nav-icon">◧</span>Materiais</div>
+  </nav>
+  <div class="sidebar-footer">v1.0 · <span id="today-label"></span></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <input class="search" id="search-input" placeholder="Buscar..." oninput="onSearch()"/>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Exportar</button>
+      <button class="btn btn-primary" id="btn-add" onclick="openAddModal()" style="display:none">+ Novo</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="panel active" id="panel-dashboard">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Clientes ativos</div><div class="metric-value blue" id="m-total">0</div></div>
+        <div class="metric"><div class="metric-label">Alertas críticos</div><div class="metric-value red" id="m-alerts">0</div></div>
+        <div class="metric"><div class="metric-label">Pendências abertas</div><div class="metric-value amber" id="m-pend">0</div></div>
+        <div class="metric"><div class="metric-label">Em dia</div><div class="metric-value green" id="m-ok">0</div></div>
+      </div>
+      <div class="section-hd"><span class="section-title">⚠ Alertas urgentes</span></div>
+      <div class="alert-list" id="dash-alerts"></div>
+      <div class="section-hd"><span class="section-title">Próximas manutenções</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Próx. manutenção</th><th>Status</th></tr></thead><tbody id="dash-clients"></tbody></table></div>
+    </div>
+
+    <div class="panel" id="panel-clientes">
+      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Segmento</th><th>Contato</th><th>Telefone</th><th>Próx. manutenção</th><th>Status</th><th></th></tr></thead><tbody id="clients-tbody"></tbody></table></div>
+    </div>
+
+    <div class="panel" id="panel-pendencias">
+      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Descrição</th><th>Dt. Inicial</th><th>Dt. Final</th><th>Prazo</th><th>Prioridade</th><th>Status</th><th></th></tr></thead><tbody id="pend-tbody"></tbody></table></div>
+    </div>
+
+    <div class="panel" id="panel-alertas">
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+        <div class="metric"><div class="metric-label">Vencidos</div><div class="metric-value red" id="a-vencidos">0</div></div>
+        <div class="metric"><div class="metric-label">Vencem em 7 dias</div><div class="metric-value amber" id="a-semana">0</div></div>
+        <div class="metric"><div class="metric-label">Em dia</div><div class="metric-value green" id="a-ok">0</div></div>
+      </div>
+      <div class="section-hd"><span class="section-title">Todos os clientes por status</span></div>
+      <div id="all-alerts"></div>
+    </div>
+
+    <div class="panel" id="panel-historico">
+      <div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th>Obs.</th></tr></thead><tbody id="hist-tbody"></tbody></table></div>
+    </div>
+
+    <div class="panel" id="panel-pecas">
+      <div class="table-wrap"><table><thead><tr><th style="width:30%">Nome da peça</th><th style="width:30%">Máquina referente</th><th style="width:20%">Código</th><th style="width:20%">Ações</th></tr></thead><tbody id="pecas-tbody"></tbody></table></div>
+    </div>
+
+    <div class="panel" id="panel-materiais">
+      <div class="section-hd"><span class="section-title">Estoque de materiais</span></div>
+      <div class="table-wrap" style="margin-bottom:24px"><table><thead><tr><th style="width:24%">Material</th><th style="width:15%">Dt. compra</th><th style="width:14%">Qtd. disponível</th><th style="width:25%">Observações</th><th style="width:22%">Ações</th></tr></thead><tbody id="mat-tbody"></tbody></table></div>
+      <div class="section-hd"><span class="section-title">Histórico de retiradas</span></div>
+      <div class="table-wrap"><table><thead><tr><th style="width:24%">Material</th><th style="width:22%">Pessoa</th><th style="width:15%">Dt. retirada</th><th style="width:14%">Qtd. retirada</th><th style="width:25%">Obs.</th></tr></thead><tbody id="ret-tbody"></tbody></table></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-title" id="modal-client-title">Novo cliente</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome da empresa *</label><input type="text" id="f-name" placeholder="Ex: Metalúrgica Silva"/></div>
+      <div class="form-group"><label>Segmento</label><select id="f-seg"><option value="">—</option><option>Indústria</option><option>Varejo</option><option>Alimentação</option><option>Construção</option><option>Agroindústria</option><option>Saúde</option><option>Logística</option><option>Outro</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome do contato</label><input type="text" id="f-contact" placeholder="Ex: João Silva"/></div>
+      <div class="form-group"><label>Telefone</label><input type="text" id="f-phone" placeholder="(19) 99999-0000"/></div>
+    </div>
+    <div class="form-group"><label>Email</label><input type="email" id="f-email" placeholder="contato@empresa.com"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Próxima manutenção *</label><input type="date" id="f-next"/></div>
+      <div class="form-group"><label>Periodicidade</label><select id="f-period"><option value="">—</option><option>Mensal</option><option>Trimestral</option><option>Semestral</option><option>Anual</option></select></div>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="f-obs" placeholder="Notas sobre o cliente..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveClient()">Salvar cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENDÊNCIA -->
+<div class="modal-overlay" id="modal-pend">
+  <div class="modal">
+    <div class="modal-title" id="modal-pend-title">Nova pendência</div>
+    <div class="form-group"><label>Cliente *</label><select id="p-client"></select></div>
+    <div class="form-group"><label>Descrição *</label><input type="text" id="p-desc" placeholder="Ex: Troca de filtro, revisão elétrica..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Data inicial do serviço</label><input type="date" id="p-start"/></div>
+      <div class="form-group"><label>Data final do serviço</label><input type="date" id="p-end"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Prazo *</label><input type="date" id="p-date"/></div>
+      <div class="form-group"><label>Prioridade</label><select id="p-prio"><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></div>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="p-obs" placeholder="Detalhes..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pend')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePend()">Salvar pendência</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO -->
+<div class="modal-overlay" id="modal-hist">
+  <div class="modal">
+    <div class="modal-title">Registrar manutenção concluída</div>
+    <div class="form-group"><label>Cliente *</label><select id="h-client"></select></div>
+    <div class="form-group"><label>Serviço realizado *</label><input type="text" id="h-service" placeholder="Ex: Manutenção preventiva, troca de peça..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Data *</label><input type="date" id="h-date"/></div>
+      <div class="form-group"><label>Técnico responsável</label><input type="text" id="h-tech" placeholder="Ex: Marcos"/></div>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="h-obs" placeholder="Detalhes do serviço..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-hist')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveHist()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PEÇA -->
+<div class="modal-overlay" id="modal-peca">
+  <div class="modal">
+    <div class="modal-title" id="modal-peca-title">Nova peça</div>
+    <div class="form-group"><label>Nome da peça *</label><input type="text" id="pc-nome" placeholder="Ex: Rolamento SKF 6205, Correia dentada..."/></div>
+    <div class="form-group"><label>Máquina referente *</label><input type="text" id="pc-maquina" placeholder="Ex: Torno CNC, Prensa hidráulica..."/></div>
+    <div class="form-group"><label>Código</label><input type="text" id="pc-codigo" placeholder="Ex: SKF-6205, 1234-AB..."/></div>
+    <div class="form-group"><label>Observações</label><textarea id="pc-obs" placeholder="Fornecedor, localização no estoque, notas..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-peca')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePeca()">Salvar peça</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MATERIAL -->
+<div class="modal-overlay" id="modal-mat">
+  <div class="modal">
+    <div class="modal-title" id="modal-mat-title">Novo material</div>
+    <div class="form-group"><label>Nome do material *</label><input type="text" id="mt-nome" placeholder="Ex: Parafuso M8, Lubrificante, Fita isolante..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Data da compra</label><input type="date" id="mt-dtcompra"/></div>
+      <div class="form-group"><label>Quantidade disponível *</label><input type="text" id="mt-qtd" placeholder="Ex: 10, 5 rolos..."/></div>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="mt-obs" placeholder="Fornecedor, localização, validade..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-mat')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMat()">Salvar material</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-retirada">
+  <div class="modal">
+    <div class="modal-title">Registrar retirada</div>
+    <div class="form-group"><label>Material</label><input type="text" id="ret-mat-nome" disabled style="opacity:.7"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome de quem retirou *</label><input type="text" id="ret-pessoa" placeholder="Nome do responsável"/></div>
+      <div class="form-group"><label>Data de retirada *</label><input type="date" id="ret-data"/></div>
+    </div>
+    <div class="form-group"><label>Quantidade retirada *</label><input type="text" id="ret-qtd" placeholder="Ex: 2, 1 rolo..."/></div>
+    <div class="form-group"><label>Observações</label><input type="text" id="ret-obs" placeholder="Motivo, local de uso..."/></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-retirada')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRetirada()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEYS = { clients: 'crm_clients_v1', pends: 'crm_pends_v1', hist: 'crm_hist_v1', pecas: 'crm_pecas_v1', materiais: 'crm_materiais_v1', retiradas: 'crm_retiradas_v1' };
+function load(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):[]; }catch{return[];} }
+function save(k,d){ try{ localStorage.setItem(k,JSON.stringify(d)); }catch{} }
+
+let clients=load(KEYS.clients), pends=load(KEYS.pends), hist=load(KEYS.hist), pecas=load(KEYS.pecas), materiais=load(KEYS.materiais), retiradas=load(KEYS.retiradas);
+let editingClientId=null, editingPendId=null, editingPecaId=null, editingMatId=null, retiradaMatId=null, currentPanel='dashboard', searchQuery='';
+
+function today(){ return new Date().toISOString().split('T')[0]; }
+function diffDays(s){ const d=new Date(s+'T00:00:00'),t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+function fmtDate(s){ if(!s)return'—'; const [y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function clientStatus(c){
+  if(!c.nextDate) return 'sem_data';
+  const d=diffDays(c.nextDate);
+  if(d<0) return 'atrasado';
+  if(d<=7) return 'vence';
+  return 'ok';
+}
+function statusPill(st){
+  if(st==='atrasado') return '<span class="pill pill-red">Atrasado</span>';
+  if(st==='vence') return '<span class="pill pill-amber">Vence em breve</span>';
+  if(st==='ok') return '<span class="pill pill-green">Em dia</span>';
+  return '<span class="pill" style="color:var(--text3)">—</span>';
+}
+function prioPill(p){
+  if(p==='alta') return '<span class="pill pill-red">Alta</span>';
+  if(p==='media') return '<span class="pill pill-amber">Média</span>';
+  return '<span class="pill pill-green">Baixa</span>';
+}
+function pendStatusPill(st){
+  if(st==='concluida') return '<span class="pill pill-green">Concluída</span>';
+  if(st==='andamento') return '<span class="pill pill-blue">Em andamento</span>';
+  return '<span class="pill pill-amber">Aberta</span>';
+}
+function getClientName(id){ const c=clients.find(x=>x.id===id); return c?c.name:'—'; }
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    const p=el.dataset.panel;
+    currentPanel=p;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.panel').forEach(pn=>pn.classList.remove('active'));
+    document.getElementById('panel-'+p).classList.add('active');
+    const titles={dashboard:'Dashboard',clientes:'Clientes',pendencias:'Pendências',alertas:'Alertas',historico:'Histórico',pecas:'Peças',materiais:'Materiais'};
+    document.getElementById('page-title').textContent=titles[p];
+    const btn=document.getElementById('btn-add');
+    const lbls={clientes:'+ Novo cliente',pendencias:'+ Nova pendência',historico:'+ Registrar',pecas:'+ Nova peça',materiais:'+ Novo material'};
+    if(lbls[p]){ btn.textContent=lbls[p]; btn.style.display='inline-flex'; }
+    else btn.style.display='none';
+    render();
+  });
+});
+
+function openAddModal(){
+  if(currentPanel==='clientes'){ editingClientId=null; document.getElementById('modal-client-title').textContent='Novo cliente'; clearClientForm(); openModal('modal-client'); }
+  else if(currentPanel==='pendencias'){ editingPendId=null; document.getElementById('modal-pend-title').textContent='Nova pendência'; fillClientSelect('p-client'); openModal('modal-pend'); }
+  else if(currentPanel==='historico'){ fillClientSelect('h-client'); document.getElementById('h-date').value=today(); openModal('modal-hist'); }
+  else if(currentPanel==='pecas'){ editingPecaId=null; document.getElementById('modal-peca-title').textContent='Nova peça'; ['pc-nome','pc-maquina','pc-codigo','pc-obs'].forEach(i=>document.getElementById(i).value=''); openModal('modal-peca'); }
+  else if(currentPanel==='materiais'){ editingMatId=null; document.getElementById('modal-mat-title').textContent='Novo material'; ['mt-nome','mt-qtd','mt-obs'].forEach(i=>document.getElementById(i).value=''); document.getElementById('mt-dtcompra').value=''; openModal('modal-mat'); }
+}
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function clearClientForm(){ ['f-name','f-contact','f-phone','f-email','f-obs'].forEach(id=>document.getElementById(id).value=''); ['f-seg','f-period'].forEach(id=>document.getElementById(id).value=''); document.getElementById('f-next').value=''; }
+function fillClientSelect(selId){ const sel=document.getElementById(selId); sel.innerHTML='<option value="">Selecione o cliente</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
+
+function saveClient(){
+  const name=document.getElementById('f-name').value.trim();
+  const nextDate=document.getElementById('f-next').value;
+  if(!name){ alert('Informe o nome da empresa.'); return; }
+  if(!nextDate){ alert('Informe a data da próxima manutenção.'); return; }
+  const data={ id:editingClientId||Date.now().toString(), name, nextDate, segment:document.getElementById('f-seg').value, contact:document.getElementById('f-contact').value, phone:document.getElementById('f-phone').value, email:document.getElementById('f-email').value, period:document.getElementById('f-period').value, obs:document.getElementById('f-obs').value, createdAt:editingClientId?(clients.find(c=>c.id===editingClientId)||{}).createdAt:today() };
+  if(editingClientId){ const idx=clients.findIndex(c=>c.id===editingClientId); clients[idx]=data; }
+  else clients.push(data);
+  save(KEYS.clients,clients); closeModal('modal-client'); render();
+}
+function editClient(id){
+  const c=clients.find(x=>x.id===id); if(!c) return;
+  editingClientId=id;
+  document.getElementById('modal-client-title').textContent='Editar cliente';
+  document.getElementById('f-name').value=c.name||'';
+  document.getElementById('f-seg').value=c.segment||'';
+  document.getElementById('f-contact').value=c.contact||'';
+  document.getElementById('f-phone').value=c.phone||'';
+  document.getElementById('f-email').value=c.email||'';
+  document.getElementById('f-next').value=c.nextDate||'';
+  document.getElementById('f-period').value=c.period||'';
+  document.getElementById('f-obs').value=c.obs||'';
+  openModal('modal-client');
+}
+function deleteClient(id){
+  if(!confirm('Remover este cliente? As pendências vinculadas serão mantidas.')) return;
+  clients=clients.filter(c=>c.id!==id); save(KEYS.clients,clients); render();
+}
+function savePend(){
+  const clientId=document.getElementById('p-client').value;
+  const desc=document.getElementById('p-desc').value.trim();
+  const date=document.getElementById('p-date').value;
+  if(!clientId||!desc||!date){ alert('Preencha os campos obrigatórios.'); return; }
+  const data={ clientId, desc, date, startDate:document.getElementById('p-start').value, endDate:document.getElementById('p-end').value, prio:document.getElementById('p-prio').value, obs:document.getElementById('p-obs').value };
+  if(editingPendId){
+    const idx=pends.findIndex(p=>p.id===editingPendId);
+    if(idx>=0) pends[idx]={...pends[idx],...data};
+    editingPendId=null;
+  } else {
+    pends.push({ id:Date.now().toString(), ...data, status:'aberta', createdAt:today() });
+  }
+  save(KEYS.pends,pends); closeModal('modal-pend');
+  ['p-desc','p-obs','p-start','p-end'].forEach(i=>document.getElementById(i).value='');
+  render();
+}
+function editPend(id){
+  const p=pends.find(x=>x.id===id); if(!p) return;
+  editingPendId=id;
+  fillClientSelect('p-client');
+  document.getElementById('modal-pend-title').textContent='Editar pendência';
+  document.getElementById('p-client').value=p.clientId;
+  document.getElementById('p-desc').value=p.desc||'';
+  document.getElementById('p-start').value=p.startDate||'';
+  document.getElementById('p-end').value=p.endDate||'';
+  document.getElementById('p-date').value=p.date||'';
+  document.getElementById('p-prio').value=p.prio||'media';
+  document.getElementById('p-obs').value=p.obs||'';
+  openModal('modal-pend');
+}
+function togglePend(id){
+  const p=pends.find(x=>x.id===id);
+  if(p){ p.status=p.status==='concluida'?'aberta':'concluida'; save(KEYS.pends,pends); render(); }
+}
+function deletePend(id){
+  if(!confirm('Remover esta pendência?')) return;
+  pends=pends.filter(p=>p.id!==id); save(KEYS.pends,pends); render();
+}
+function saveHist(){
+  const clientId=document.getElementById('h-client').value;
+  const service=document.getElementById('h-service').value.trim();
+  const date=document.getElementById('h-date').value;
+  if(!clientId||!service||!date){ alert('Preencha os campos obrigatórios.'); return; }
+  hist.unshift({ id:Date.now().toString(), clientId, service, date, tech:document.getElementById('h-tech').value, obs:document.getElementById('h-obs').value });
+  save(KEYS.hist,hist); closeModal('modal-hist');
+  ['h-service','h-tech','h-obs'].forEach(i=>document.getElementById(i).value='');
+  render();
+}
+function onSearch(){ searchQuery=document.getElementById('search-input').value.toLowerCase(); render(); }
+function matchClient(c){ if(!searchQuery) return true; return [c.name,c.contact,c.phone,c.segment,c.email].some(v=>v&&v.toLowerCase().includes(searchQuery)); }
+
+function render(){
+  const atrasados=clients.filter(c=>clientStatus(c)==='atrasado');
+  const vence7=clients.filter(c=>clientStatus(c)==='vence');
+  const okCount=clients.filter(c=>clientStatus(c)==='ok').length;
+  const openPends=pends.filter(p=>p.status!=='concluida');
+
+  document.getElementById('badge-alert').textContent=atrasados.length+vence7.length;
+  document.getElementById('badge-pend').textContent=openPends.length;
+  document.getElementById('client-count-label').textContent=clients.length+' clientes ativos';
+  document.getElementById('today-label').textContent=fmtDate(today());
+  document.getElementById('m-total').textContent=clients.length;
+  document.getElementById('m-alerts').textContent=atrasados.length;
+  document.getElementById('m-pend').textContent=openPends.length;
+  document.getElementById('m-ok').textContent=okCount;
+
+  // dash alerts
+  const urgents=[...atrasados,...vence7].slice(0,6);
+  const dA=document.getElementById('dash-alerts');
+  if(!urgents.length) dA.innerHTML='<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-text">Nenhum alerta urgente</div></div>';
+  else dA.innerHTML=urgents.map(c=>{
+    const st=clientStatus(c), d=diffDays(c.nextDate), cls=st==='atrasado'?'red':'amber';
+    const msg=st==='atrasado'?`venceu há ${Math.abs(d)} dia(s)`:`vence em ${d} dia(s)`;
+    return `<div class="alert-card ${cls}"><div class="alert-dot ${cls}"></div><div class="alert-body"><div class="alert-title">${c.name}</div><div class="alert-sub">${msg}${c.contact?' · '+c.contact:''}</div></div><div class="alert-date ${cls}">${fmtDate(c.nextDate)}</div></div>`;
+  }).join('');
+
+  // dash clients
+  const recent=[...clients].sort((a,b)=>(a.nextDate||'')>(b.nextDate||'')?1:-1).slice(0,8);
+  const dC=document.getElementById('dash-clients');
+  dC.innerHTML=recent.length?recent.map(c=>`<tr><td><strong>${c.name}</strong></td><td>${c.contact||'—'}${c.phone?' · <span style="font-family:DM Mono,monospace;font-size:11px">'+c.phone+'</span>':''}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(c.nextDate)}</td><td>${statusPill(clientStatus(c))}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:32px">Nenhum cliente cadastrado. Vá em Clientes e adicione o primeiro!</td></tr>';
+
+  // clientes table
+  const filtered=clients.filter(matchClient);
+  document.getElementById('clients-tbody').innerHTML=filtered.length?filtered.map(c=>`<tr><td><strong>${c.name}</strong></td><td>${c.segment||'—'}</td><td>${c.contact||'—'}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${c.phone||'—'}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(c.nextDate)}</td><td>${statusPill(clientStatus(c))}</td><td><div class="action-row"><button class="btn btn-ghost btn-sm" onclick="editClient('${c.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}')">✕</button></div></td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Nenhum cliente encontrado</td></tr>';
+
+  // pendências
+  const pf=pends.filter(p=>!searchQuery||(getClientName(p.clientId).toLowerCase().includes(searchQuery)||p.desc.toLowerCase().includes(searchQuery)));
+  const ps=[...pf].sort((a,b)=>{const o={alta:0,media:1,baixa:2};return o[a.prio]-o[b.prio];});
+  document.getElementById('pend-tbody').innerHTML=ps.length?ps.map(p=>`<tr><td><strong>${getClientName(p.clientId)}</strong></td><td>${p.desc}${p.obs?'<br><span style="font-size:11px;color:var(--text3)">'+p.obs+'</span>':''}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.endDate)}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td><td>${prioPill(p.prio)}</td><td>${pendStatusPill(p.status)}</td><td><div class="action-row"><button class="btn btn-ghost btn-sm" onclick="editPend('${p.id}')" title="Editar">✏</button><button class="btn btn-ghost btn-sm" onclick="togglePend('${p.id}')" title="${p.status==='concluida'?'Reabrir':'Marcar concluída'}">${p.status==='concluida'?'↩':'✓'}</button><button class="btn btn-danger btn-sm" onclick="deletePend('${p.id}')">✕</button></div></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">Nenhuma pendência cadastrada</td></tr>';
+
+  // alertas
+  document.getElementById('a-vencidos').textContent=atrasados.length;
+  document.getElementById('a-semana').textContent=vence7.length;
+  document.getElementById('a-ok').textContent=okCount;
+  const allSorted=[...clients].sort((a,b)=>{const o={atrasado:0,vence:1,ok:2,sem_data:3};return o[clientStatus(a)]-o[clientStatus(b)];});
+  document.getElementById('all-alerts').innerHTML='<div class="alert-list">'+(allSorted.length?allSorted.map(c=>{
+    const st=clientStatus(c), cls=st==='atrasado'?'red':st==='vence'?'amber':'green';
+    const d=c.nextDate?diffDays(c.nextDate):null;
+    const msg=st==='atrasado'?`venceu há ${Math.abs(d)} dia(s)`:st==='vence'?`vence em ${d} dia(s)`:'em dia';
+    return `<div class="alert-card ${cls}"><div class="alert-dot ${cls}"></div><div class="alert-body"><div class="alert-title">${c.name}</div><div class="alert-sub">${msg} · próx. manutenção: ${fmtDate(c.nextDate)}</div></div><div class="alert-date ${cls}">${fmtDate(c.nextDate)}</div></div>`;
+  }).join(''):'<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">Nenhum cliente cadastrado</div></div>')+'</div>';
+
+  // histórico
+  const hf=hist.filter(h=>!searchQuery||(getClientName(h.clientId).toLowerCase().includes(searchQuery)||(h.service||'').toLowerCase().includes(searchQuery)));
+  document.getElementById('hist-tbody').innerHTML=hf.length?hf.map(h=>`<tr><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(h.date)}</td><td><strong>${getClientName(h.clientId)}</strong></td><td>${h.service}</td><td>${h.tech||'—'}</td><td style="color:var(--text2);font-size:12px">${h.obs||'—'}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Nenhuma manutenção registrada</td></tr>';
+
+  // peças
+  const pf2=pecas.filter(p=>!searchQuery||p.nome.toLowerCase().includes(searchQuery)||(p.maquina||'').toLowerCase().includes(searchQuery)||(p.codigo||'').toLowerCase().includes(searchQuery));
+  document.getElementById('pecas-tbody').innerHTML=pf2.length?pf2.map(p=>`<tr><td><strong>${p.nome}</strong>${p.obs?'<br><span style="font-size:11px;color:var(--text3)">'+p.obs+'</span>':''}</td><td>${p.maquina||'—'}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${p.codigo||'—'}</td><td><div class="action-row"><button class="btn btn-ghost btn-sm" onclick="editPeca('${p.id}')" title="Editar">✏</button><button class="btn btn-danger btn-sm" onclick="deletePeca('${p.id}')">✕</button></div></td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:32px">Nenhuma peça cadastrada</td></tr>';
+
+  // materiais
+  const matEl=document.getElementById('mat-tbody');
+  if(matEl){
+    const mf=materiais.filter(m=>!searchQuery||m.nome.toLowerCase().includes(searchQuery)||(m.obs||'').toLowerCase().includes(searchQuery));
+    matEl.innerHTML=mf.length?mf.map(m=>`<tr><td><strong>${m.nome}</strong></td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(m.dtcompra)}</td><td>${m.qtd||'—'}</td><td style="font-size:12px;color:var(--text2)">${m.obs||'—'}</td><td><div class="action-row"><button class="btn btn-ghost btn-sm" onclick="openRetirada('${m.id}')" title="Registrar retirada">↩ Retirada</button><button class="btn btn-ghost btn-sm" onclick="editMat('${m.id}')" title="Editar">✏</button><button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">✕</button></div></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Nenhum material cadastrado</td></tr>';
+    const rf=retiradas.filter(r=>!searchQuery||r.matNome.toLowerCase().includes(searchQuery)||r.pessoa.toLowerCase().includes(searchQuery));
+    const retSorted=[...rf].sort((a,b)=>new Date(b.data)-new Date(a.data));
+    document.getElementById('ret-tbody').innerHTML=retSorted.length?retSorted.map(r=>`<tr><td><strong>${r.matNome}</strong></td><td>${r.pessoa}</td><td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(r.data)}</td><td>${r.qtd}</td><td style="font-size:12px;color:var(--text2)">${r.obs||'—'} <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteRetirada('${r.id}')">✕</button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Nenhuma retirada registrada</td></tr>';
+  }
+}
+
+function savePeca(){
+  const nome=document.getElementById('pc-nome').value.trim();
+  const maquina=document.getElementById('pc-maquina').value.trim();
+  if(!nome||!maquina){ alert('Preencha nome da peça e máquina referente.'); return; }
+  const data={ nome, maquina, codigo:document.getElementById('pc-codigo').value.trim(), obs:document.getElementById('pc-obs').value.trim() };
+  if(editingPecaId){
+    const idx=pecas.findIndex(p=>p.id===editingPecaId);
+    if(idx>=0) pecas[idx]={...pecas[idx],...data};
+    editingPecaId=null;
+  } else {
+    pecas.push({ id:Date.now().toString(), ...data, createdAt:today() });
+  }
+  save(KEYS.pecas,pecas); closeModal('modal-peca'); render();
+}
+function editPeca(id){
+  const p=pecas.find(x=>x.id===id); if(!p) return;
+  editingPecaId=id;
+  document.getElementById('modal-peca-title').textContent='Editar peça';
+  document.getElementById('pc-nome').value=p.nome||'';
+  document.getElementById('pc-maquina').value=p.maquina||'';
+  document.getElementById('pc-codigo').value=p.codigo||'';
+  document.getElementById('pc-obs').value=p.obs||'';
+  openModal('modal-peca');
+}
+function deletePeca(id){
+  if(!confirm('Remover esta peça?')) return;
+  pecas=pecas.filter(p=>p.id!==id); save(KEYS.pecas,pecas); render();
+}
+
+function saveMat(){
+  const nome=document.getElementById('mt-nome').value.trim();
+  const qtd=document.getElementById('mt-qtd').value.trim();
+  if(!nome||!qtd){ alert('Informe o nome e a quantidade disponível.'); return; }
+  const data={ nome, dtcompra:document.getElementById('mt-dtcompra').value, qtd, obs:document.getElementById('mt-obs').value.trim() };
+  if(editingMatId){
+    const idx=materiais.findIndex(m=>m.id===editingMatId);
+    if(idx>=0) materiais[idx]={...materiais[idx],...data};
+    editingMatId=null;
+  } else {
+    materiais.push({ id:Date.now().toString(), ...data, createdAt:today() });
+  }
+  save(KEYS.materiais,materiais); closeModal('modal-mat'); render();
+}
+function editMat(id){
+  const m=materiais.find(x=>x.id===id); if(!m) return;
+  editingMatId=id;
+  document.getElementById('modal-mat-title').textContent='Editar material';
+  document.getElementById('mt-nome').value=m.nome||'';
+  document.getElementById('mt-dtcompra').value=m.dtcompra||'';
+  document.getElementById('mt-qtd').value=m.qtd||'';
+  document.getElementById('mt-obs').value=m.obs||'';
+  openModal('modal-mat');
+}
+function deleteMat(id){
+  if(!confirm('Remover este material e todo o histórico de retiradas?')) return;
+  materiais=materiais.filter(m=>m.id!==id);
+  retiradas=retiradas.filter(r=>r.matId!==id);
+  save(KEYS.materiais,materiais); save(KEYS.retiradas,retiradas); render();
+}
+function openRetirada(id){
+  const m=materiais.find(x=>x.id===id); if(!m) return;
+  retiradaMatId=id;
+  document.getElementById('ret-mat-nome').value=m.nome;
+  ['ret-pessoa','ret-qtd','ret-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('ret-data').value=today();
+  openModal('modal-retirada');
+}
+function saveRetirada(){
+  const pessoa=document.getElementById('ret-pessoa').value.trim();
+  const qtdStr=document.getElementById('ret-qtd').value.trim();
+  const data=document.getElementById('ret-data').value;
+  if(!pessoa||!qtdStr||!data){ alert('Preencha todos os campos obrigatórios.'); return; }
+  const qtdRet=parseFloat(qtdStr);
+  if(isNaN(qtdRet)||qtdRet<=0){ alert('Informe uma quantidade válida.'); return; }
+  const mat=materiais.find(m=>m.id===retiradaMatId);
+  if(!mat){ alert('Material não encontrado.'); return; }
+  const qtdAtual=parseFloat(mat.qtd)||0;
+  if(qtdRet>qtdAtual){ alert(`Quantidade insuficiente em estoque. Disponível: ${mat.qtd}`); return; }
+  const novaQtd=qtdAtual-qtdRet;
+  mat.qtd=Number.isInteger(novaQtd)?String(novaQtd):novaQtd.toFixed(2);
+  retiradas.push({ id:Date.now().toString(), matId:retiradaMatId, matNome:mat.nome, pessoa, data, qtd:qtdStr, obs:document.getElementById('ret-obs').value.trim() });
+  save(KEYS.materiais,materiais); save(KEYS.retiradas,retiradas); closeModal('modal-retirada'); render();
+}
+function deleteRetirada(id){
+  if(!confirm('Remover este registro? A quantidade será devolvida ao estoque.')) return;
+  const r=retiradas.find(x=>x.id===id); if(!r) return;
+  const mat=materiais.find(m=>m.id===r.matId);
+  if(mat){
+    const qtdDev=parseFloat(r.qtd)||0;
+    const qtdAtual=parseFloat(mat.qtd)||0;
+    const nova=qtdAtual+qtdDev;
+    mat.qtd=Number.isInteger(nova)?String(nova):nova.toFixed(2);
+    save(KEYS.materiais,materiais);
+  }
+  retiradas=retiradas.filter(x=>x.id!==id); save(KEYS.retiradas,retiradas); render();
+}
+
+function exportCSV(){
+  let csv='Nome,Segmento,Contato,Telefone,Email,Próx.Manutenção,Status\n';
+  clients.forEach(c=>{ csv+=[c.name,c.segment,c.contact,c.phone,c.email,fmtDate(c.nextDate),clientStatus(c)].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')+'\n'; });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='clientes_manutencao.csv'; a.click();
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+render();
+</script>
+</body>
+</html>
