@@ -314,13 +314,46 @@ textarea { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
-<script>
-const KEYS = { clients: 'crm_clients_v1', pends: 'crm_pends_v1', hist: 'crm_hist_v1', pecas: 'crm_pecas_v1', materiais: 'crm_materiais_v1', retiradas: 'crm_retiradas_v1' };
-function load(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):[]; }catch{return[];} }
-function save(k,d){ try{ localStorage.setItem(k,JSON.stringify(d)); }catch{} }
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:99;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+  <div style="font-size:28px">⚙️</div>
+  <div style="font-size:14px;color:#555">Carregando dados...</div>
+</div>
 
-let clients=load(KEYS.clients), pends=load(KEYS.pends), hist=load(KEYS.hist), pecas=load(KEYS.pecas), materiais=load(KEYS.materiais), retiradas=load(KEYS.retiradas);
+<script>
+const SUPA_URL = 'https://qfboupfcflsviuqibdee.supabase.co';
+const SUPA_KEY = 'sb_publishable_tQPsf5t1syyjXW-WIJLk9Q_mavIVaJO';
+const TABLES = { clients:'clientes', pends:'pendencias', hist:'historico', pecas:'pecas', materiais:'materiais', retiradas:'retiradas' };
+
+async function dbLoad(table){
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});
+    const rows=await r.json();
+    return Array.isArray(rows)?rows.map(row=>({id:row.id,...row.data})):[];
+  }catch(e){console.error('load',table,e);return[];}
+}
+async function dbSave(table, id, data){
+  try{
+    const body=JSON.stringify({id, data});
+    await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},body});
+  }catch(e){console.error('save',table,e);}
+}
+async function dbDelete(table, id){
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});
+  }catch(e){console.error('delete',table,e);}
+}
+
+let clients=[], pends=[], hist=[], pecas=[], materiais=[], retiradas=[];
 let editingClientId=null, editingPendId=null, editingPecaId=null, editingMatId=null, retiradaMatId=null, currentPanel='dashboard', searchQuery='';
+
+async function loadAll(){
+  document.getElementById('loading-overlay').style.display='flex';
+  [clients,pends,hist,pecas,materiais,retiradas]=await Promise.all([
+    dbLoad(TABLES.clients),dbLoad(TABLES.pends),dbLoad(TABLES.hist),dbLoad(TABLES.pecas),dbLoad(TABLES.materiais),dbLoad(TABLES.retiradas)
+  ]);
+  document.getElementById('loading-overlay').style.display='none';
+  render();
+}
 
 function today(){ return new Date().toISOString().split('T')[0]; }
 function diffDays(s){ const d=new Date(s+'T00:00:00'),t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
@@ -380,15 +413,17 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function clearClientForm(){ ['f-name','f-contact','f-phone','f-email','f-obs'].forEach(id=>document.getElementById(id).value=''); ['f-seg','f-period'].forEach(id=>document.getElementById(id).value=''); document.getElementById('f-next').value=''; }
 function fillClientSelect(selId){ const sel=document.getElementById(selId); sel.innerHTML='<option value="">Selecione o cliente</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
 
-function saveClient(){
+async function saveClient(){
   const name=document.getElementById('f-name').value.trim();
   const nextDate=document.getElementById('f-next').value;
   if(!name){ alert('Informe o nome da empresa.'); return; }
   if(!nextDate){ alert('Informe a data da próxima manutenção.'); return; }
-  const data={ id:editingClientId||Date.now().toString(), name, nextDate, segment:document.getElementById('f-seg').value, contact:document.getElementById('f-contact').value, phone:document.getElementById('f-phone').value, email:document.getElementById('f-email').value, period:document.getElementById('f-period').value, obs:document.getElementById('f-obs').value, createdAt:editingClientId?(clients.find(c=>c.id===editingClientId)||{}).createdAt:today() };
+  const id=editingClientId||Date.now().toString();
+  const data={ id, name, nextDate, segment:document.getElementById('f-seg').value, contact:document.getElementById('f-contact').value, phone:document.getElementById('f-phone').value, email:document.getElementById('f-email').value, period:document.getElementById('f-period').value, obs:document.getElementById('f-obs').value, createdAt:editingClientId?(clients.find(c=>c.id===editingClientId)||{}).createdAt:today() };
+  await dbSave(TABLES.clients, id, data);
   if(editingClientId){ const idx=clients.findIndex(c=>c.id===editingClientId); clients[idx]=data; }
   else clients.push(data);
-  save(KEYS.clients,clients); closeModal('modal-client'); render();
+  closeModal('modal-client'); render();
 }
 function editClient(id){
   const c=clients.find(x=>x.id===id); if(!c) return;
@@ -404,26 +439,34 @@ function editClient(id){
   document.getElementById('f-obs').value=c.obs||'';
   openModal('modal-client');
 }
-function deleteClient(id){
+async function deleteClient(id){
   if(!confirm('Remover este cliente? As pendências vinculadas serão mantidas.')) return;
-  clients=clients.filter(c=>c.id!==id); save(KEYS.clients,clients); render();
+  await dbDelete(TABLES.clients, id);
+  clients=clients.filter(c=>c.id!==id); render();
 }
-function savePend(){
+async function savePend(){
   const clientId=document.getElementById('p-client').value;
   const desc=document.getElementById('p-desc').value.trim();
   const date=document.getElementById('p-date').value;
   if(!clientId||!desc||!date){ alert('Preencha os campos obrigatórios.'); return; }
-  const data={ clientId, desc, date, startDate:document.getElementById('p-start').value, endDate:document.getElementById('p-end').value, prio:document.getElementById('p-prio').value, obs:document.getElementById('p-obs').value };
-  if(editingPendId){
-    const idx=pends.findIndex(p=>p.id===editingPendId);
-    if(idx>=0) pends[idx]={...pends[idx],...data};
-    editingPendId=null;
-  } else {
-    pends.push({ id:Date.now().toString(), ...data, status:'aberta', createdAt:today() });
-  }
-  save(KEYS.pends,pends); closeModal('modal-pend');
+  const id=editingPendId||Date.now().toString();
+  const base=editingPendId?pends.find(p=>p.id===editingPendId):null;
+  const data={ id, clientId, desc, date, startDate:document.getElementById('p-start').value, endDate:document.getElementById('p-end').value, prio:document.getElementById('p-prio').value, obs:document.getElementById('p-obs').value, status:base?base.status:'aberta', createdAt:base?base.createdAt:today() };
+  await dbSave(TABLES.pends, id, data);
+  if(editingPendId){ const idx=pends.findIndex(p=>p.id===editingPendId); if(idx>=0) pends[idx]=data; editingPendId=null; }
+  else pends.push(data);
+  closeModal('modal-pend');
   ['p-desc','p-obs','p-start','p-end'].forEach(i=>document.getElementById(i).value='');
   render();
+}
+async function togglePend(id){
+  const p=pends.find(x=>x.id===id);
+  if(p){ p.status=p.status==='concluida'?'aberta':'concluida'; await dbSave(TABLES.pends, id, p); render(); }
+}
+async function deletePend(id){
+  if(!confirm('Remover esta pendência?')) return;
+  await dbDelete(TABLES.pends, id);
+  pends=pends.filter(p=>p.id!==id); render();
 }
 function editPend(id){
   const p=pends.find(x=>x.id===id); if(!p) return;
@@ -447,13 +490,15 @@ function deletePend(id){
   if(!confirm('Remover esta pendência?')) return;
   pends=pends.filter(p=>p.id!==id); save(KEYS.pends,pends); render();
 }
-function saveHist(){
+async function saveHist(){
   const clientId=document.getElementById('h-client').value;
   const service=document.getElementById('h-service').value.trim();
   const date=document.getElementById('h-date').value;
   if(!clientId||!service||!date){ alert('Preencha os campos obrigatórios.'); return; }
-  hist.unshift({ id:Date.now().toString(), clientId, service, date, tech:document.getElementById('h-tech').value, obs:document.getElementById('h-obs').value });
-  save(KEYS.hist,hist); closeModal('modal-hist');
+  const id=Date.now().toString();
+  const data={ id, clientId, service, date, tech:document.getElementById('h-tech').value, obs:document.getElementById('h-obs').value };
+  await dbSave(TABLES.hist, id, data);
+  hist.unshift(data); closeModal('modal-hist');
   ['h-service','h-tech','h-obs'].forEach(i=>document.getElementById(i).value='');
   render();
 }
@@ -530,19 +575,17 @@ function render(){
   }
 }
 
-function savePeca(){
+async function savePeca(){
   const nome=document.getElementById('pc-nome').value.trim();
   const maquina=document.getElementById('pc-maquina').value.trim();
   if(!nome||!maquina){ alert('Preencha nome da peça e máquina referente.'); return; }
-  const data={ nome, maquina, codigo:document.getElementById('pc-codigo').value.trim(), obs:document.getElementById('pc-obs').value.trim() };
-  if(editingPecaId){
-    const idx=pecas.findIndex(p=>p.id===editingPecaId);
-    if(idx>=0) pecas[idx]={...pecas[idx],...data};
-    editingPecaId=null;
-  } else {
-    pecas.push({ id:Date.now().toString(), ...data, createdAt:today() });
-  }
-  save(KEYS.pecas,pecas); closeModal('modal-peca'); render();
+  const id=editingPecaId||Date.now().toString();
+  const base=editingPecaId?pecas.find(p=>p.id===editingPecaId):{};
+  const data={ id, nome, maquina, codigo:document.getElementById('pc-codigo').value.trim(), obs:document.getElementById('pc-obs').value.trim(), createdAt:base.createdAt||today() };
+  await dbSave(TABLES.pecas, id, data);
+  if(editingPecaId){ const idx=pecas.findIndex(p=>p.id===editingPecaId); if(idx>=0) pecas[idx]=data; editingPecaId=null; }
+  else pecas.push(data);
+  closeModal('modal-peca'); render();
 }
 function editPeca(id){
   const p=pecas.find(x=>x.id===id); if(!p) return;
@@ -554,24 +597,23 @@ function editPeca(id){
   document.getElementById('pc-obs').value=p.obs||'';
   openModal('modal-peca');
 }
-function deletePeca(id){
+async function deletePeca(id){
   if(!confirm('Remover esta peça?')) return;
-  pecas=pecas.filter(p=>p.id!==id); save(KEYS.pecas,pecas); render();
+  await dbDelete(TABLES.pecas, id);
+  pecas=pecas.filter(p=>p.id!==id); render();
 }
 
-function saveMat(){
+async function saveMat(){
   const nome=document.getElementById('mt-nome').value.trim();
   const qtd=document.getElementById('mt-qtd').value.trim();
   if(!nome||!qtd){ alert('Informe o nome e a quantidade disponível.'); return; }
-  const data={ nome, dtcompra:document.getElementById('mt-dtcompra').value, qtd, obs:document.getElementById('mt-obs').value.trim() };
-  if(editingMatId){
-    const idx=materiais.findIndex(m=>m.id===editingMatId);
-    if(idx>=0) materiais[idx]={...materiais[idx],...data};
-    editingMatId=null;
-  } else {
-    materiais.push({ id:Date.now().toString(), ...data, createdAt:today() });
-  }
-  save(KEYS.materiais,materiais); closeModal('modal-mat'); render();
+  const id=editingMatId||Date.now().toString();
+  const base=editingMatId?materiais.find(m=>m.id===editingMatId):{};
+  const data={ id, nome, dtcompra:document.getElementById('mt-dtcompra').value, qtd, obs:document.getElementById('mt-obs').value.trim(), createdAt:base.createdAt||today() };
+  await dbSave(TABLES.materiais, id, data);
+  if(editingMatId){ const idx=materiais.findIndex(m=>m.id===editingMatId); if(idx>=0) materiais[idx]=data; editingMatId=null; }
+  else materiais.push(data);
+  closeModal('modal-mat'); render();
 }
 function editMat(id){
   const m=materiais.find(x=>x.id===id); if(!m) return;
@@ -583,11 +625,14 @@ function editMat(id){
   document.getElementById('mt-obs').value=m.obs||'';
   openModal('modal-mat');
 }
-function deleteMat(id){
+async function deleteMat(id){
   if(!confirm('Remover este material e todo o histórico de retiradas?')) return;
+  await dbDelete(TABLES.materiais, id);
+  const retIds=retiradas.filter(r=>r.matId===id).map(r=>r.id);
+  for(const rid of retIds) await dbDelete(TABLES.retiradas, rid);
   materiais=materiais.filter(m=>m.id!==id);
   retiradas=retiradas.filter(r=>r.matId!==id);
-  save(KEYS.materiais,materiais); save(KEYS.retiradas,retiradas); render();
+  render();
 }
 function openRetirada(id){
   const m=materiais.find(x=>x.id===id); if(!m) return;
@@ -597,7 +642,7 @@ function openRetirada(id){
   document.getElementById('ret-data').value=today();
   openModal('modal-retirada');
 }
-function saveRetirada(){
+async function saveRetirada(){
   const pessoa=document.getElementById('ret-pessoa').value.trim();
   const qtdStr=document.getElementById('ret-qtd').value.trim();
   const data=document.getElementById('ret-data').value;
@@ -610,21 +655,24 @@ function saveRetirada(){
   if(qtdRet>qtdAtual){ alert(`Quantidade insuficiente em estoque. Disponível: ${mat.qtd}`); return; }
   const novaQtd=qtdAtual-qtdRet;
   mat.qtd=Number.isInteger(novaQtd)?String(novaQtd):novaQtd.toFixed(2);
-  retiradas.push({ id:Date.now().toString(), matId:retiradaMatId, matNome:mat.nome, pessoa, data, qtd:qtdStr, obs:document.getElementById('ret-obs').value.trim() });
-  save(KEYS.materiais,materiais); save(KEYS.retiradas,retiradas); closeModal('modal-retirada'); render();
+  await dbSave(TABLES.materiais, mat.id, mat);
+  const id=Date.now().toString();
+  const ret={ id, matId:retiradaMatId, matNome:mat.nome, pessoa, data, qtd:qtdStr, obs:document.getElementById('ret-obs').value.trim() };
+  await dbSave(TABLES.retiradas, id, ret);
+  retiradas.push(ret);
+  closeModal('modal-retirada'); render();
 }
-function deleteRetirada(id){
+async function deleteRetirada(id){
   if(!confirm('Remover este registro? A quantidade será devolvida ao estoque.')) return;
   const r=retiradas.find(x=>x.id===id); if(!r) return;
   const mat=materiais.find(m=>m.id===r.matId);
   if(mat){
-    const qtdDev=parseFloat(r.qtd)||0;
-    const qtdAtual=parseFloat(mat.qtd)||0;
-    const nova=qtdAtual+qtdDev;
+    const nova=(parseFloat(mat.qtd)||0)+(parseFloat(r.qtd)||0);
     mat.qtd=Number.isInteger(nova)?String(nova):nova.toFixed(2);
-    save(KEYS.materiais,materiais);
+    await dbSave(TABLES.materiais, mat.id, mat);
   }
-  retiradas=retiradas.filter(x=>x.id!==id); save(KEYS.retiradas,retiradas); render();
+  await dbDelete(TABLES.retiradas, id);
+  retiradas=retiradas.filter(x=>x.id!==id); render();
 }
 
 function exportCSV(){
@@ -636,7 +684,7 @@ function exportCSV(){
 }
 
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
-render();
+loadAll();
 </script>
 </body>
 </html>
